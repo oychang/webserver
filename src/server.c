@@ -44,8 +44,9 @@ getaddrinfo_wrapper(struct addrinfo * p)
 
 // XXX: unsafe strcat
 void
-prepare_buf(buf b, enum status s)
+prepare_buf(buf body, enum status s)
 {
+    buf b = {};
     // HTTP/1.1 200 OK
     switch (s) {
     case OK:
@@ -59,14 +60,29 @@ prepare_buf(buf b, enum status s)
         break;
     }
 
-
     // according to rfc, we can return asctime(), but not good
     // Date: Fri, 31 Dec 1999 23:59:59 GMT
-    // time_t rawtime;
-    // struct tm * timeinfo;
-    // time(&rawtime);
-    // timeinfo = gmtime(&rawtime);
-    // asctime(timeinfo);
+    time_t rawtime;
+    struct tm * timeinfo;
+    time(&rawtime);
+    timeinfo = gmtime(&rawtime);
+    sprintf(b, "%s\r\n", asctime(timeinfo));
+
+    // xxx: only mime type available
+    // Content-Type: text/plain
+    strcat(b, "Content-Type: text/plain\r\n");
+
+    // Content-Length: 42
+    sprintf(b, "Content-Length: %zu\r\n", strlen(body));
+
+    // Newline
+    strcat(b, "\r\n");
+
+    // Body
+    if (strlen(body) > 0)
+        strcat(b, body);
+
+    return;
 }
 
 
@@ -118,9 +134,6 @@ process(buf b, buf send)
 }
 
 
-// Content-Type: text/plain
-// Content-Length: 42 // (bytes)
-// Server: webserver/0.1
 int
 send_reponse(buf sendbuf, int sockfd)
 {
