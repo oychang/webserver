@@ -40,6 +40,36 @@ getaddrinfo_wrapper(struct addrinfo * p)
 }
 
 
+
+
+// XXX: unsafe strcat
+void
+prepare_buf(buf b, enum status s)
+{
+    // HTTP/1.1 200 OK
+    switch (s) {
+    case OK:
+        strcat(b, "HTTP/1.1 200 OK\r\n");
+        break;
+    case NOT_FOUND:
+        strcat(b, "HTTP/1.1 404 Not Found\r\n");
+        break;
+    case SERVER_ERROR:
+        strcat(b, "HTTP/1.1 500 Server Error\r\n");
+        break;
+    }
+
+
+    // according to rfc, we can return asctime(), but not good
+    // Date: Fri, 31 Dec 1999 23:59:59 GMT
+    // time_t rawtime;
+    // struct tm * timeinfo;
+    // time(&rawtime);
+    // timeinfo = gmtime(&rawtime);
+    // asctime(timeinfo);
+}
+
+
 // GET / HTTP/1.1
 // Host: localhost:3421
 // Connection: keep-alive
@@ -47,7 +77,7 @@ getaddrinfo_wrapper(struct addrinfo * p)
 // User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/33.0.1750.152 Chrome/33.0.1750.152 Safari/537.36
 // Accept-Encoding: gzip,deflate,sdch
 // Accept-Language: en-US,en;q=0.8
-enum status
+void
 process(buf b, buf send)
 {
     char * s = strtok(b, " ");
@@ -58,7 +88,8 @@ process(buf b, buf send)
         FILE * f = fopen(s, "r");
         if (f == NULL) {
             perror("fopen");
-            return 404;
+            prepare_buf(send, NOT_FOUND);
+            return;
         }
 
         string line;
@@ -75,21 +106,29 @@ process(buf b, buf send)
         }
 
         fclose(f);
-        return 200;
+
+        prepare_buf(send, OK);
+        return;
     } else if (strncasecmp(s, "POST", 4) == 0) {
         printf("%s\n", b);
     }
 
-    return 500;
+    prepare_buf(send, SERVER_ERROR);
+    return;
 }
 
 
-// ensure crlf delimited
-// HTTP/1.1 200 OK
-// Date: Fri, 31 Dec 1999 23:59:59 GMT
 // Content-Type: text/plain
 // Content-Length: 42 // (bytes)
 // Server: webserver/0.1
+int
+send_reponse(buf sendbuf, int sockfd)
+{
+    size_t len = strlen(sendbuf);
+    ssize_t sentbytes = send(sockfd, sendbuf, len, 0);
+    printf("tried to send %zu...send %zd\n", len, sentbytes);
+    return 0;
+}
 
 
 int
@@ -119,7 +158,8 @@ main(void)
         return EXIT_FAILURE;
     }
 
-    enum status retstatus = process(request, response);
+    process(request, response);
+    send_reponse(response, clientfd);
 
     return EXIT_SUCCESS;
 }
