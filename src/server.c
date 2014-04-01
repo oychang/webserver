@@ -47,8 +47,8 @@ getaddrinfo_wrapper(struct addrinfo * p)
 // User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/33.0.1750.152 Chrome/33.0.1750.152 Safari/537.36
 // Accept-Encoding: gzip,deflate,sdch
 // Accept-Language: en-US,en;q=0.8
-int
-process_request(buf b)
+enum status
+process(buf b, buf send)
 {
     char * s = strtok(b, " ");
     if (strncasecmp(s, "GET", 3) == 0) {
@@ -56,16 +56,28 @@ process_request(buf b)
         FILE * f = fopen(s+1, "r");
         if (f == NULL) {
             perror("fopen");
-            return EXIT_FAILURE;
+            return 404;
         }
 
-        // read, make sure crlf
+        string line;
+        while (fgets(line, MAXBUF-1, f) != NULL) {
+            size_t len = strlen(line);
+            // Replace the last character and the next
+            // spot in the buffer by CRLF.
+            // Guaranteed to be accessible because
+            // of fgets.
+            line[len-1] = '\r';
+            line[len] = '\n';
+            line[len+1] = '\0';
+            strcat(send, line);
+        }
 
         fclose(f);
+        return 200;
     } else if (strncasecmp(s, "POST", 4) == 0) {
     }
 
-    return -1;
+    return 500;
 }
 
 
@@ -98,13 +110,14 @@ main(void)
     }
 
     // http://www.jmarshall.com/easy/http/
-    buf request;
+    buf request, response;
     if ((recv(clientfd, request, MAXBUF, 0)) == -1) {
         perror("recv");
         return EXIT_FAILURE;
     }
 
-    process_request(request);
+    enum status retstatus = process(request, response);
+    printf("%d\n", retstatus);
 
     return EXIT_SUCCESS;
 }
