@@ -53,7 +53,9 @@ process(buf b, buf send)
     char * s = strtok(b, " ");
     if (strncasecmp(s, "GET", 3) == 0) {
         s = strtok(NULL, " ");
-        FILE * f = fopen(s+1, "r");
+        // default to index.html
+        s = (strncmp(s, "/", MAXBUF) == 0) ? "index.html" : (s+1);
+        FILE * f = fopen(s, "r");
         if (f == NULL) {
             perror("fopen");
             return 404;
@@ -75,6 +77,7 @@ process(buf b, buf send)
         fclose(f);
         return 200;
     } else if (strncasecmp(s, "POST", 4) == 0) {
+        printf("%s\n", b);
     }
 
     return 500;
@@ -117,7 +120,6 @@ main(void)
     }
 
     enum status retstatus = process(request, response);
-    printf("%d\n", retstatus);
 
     return EXIT_SUCCESS;
 }
