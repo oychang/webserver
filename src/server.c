@@ -170,6 +170,31 @@ run_command(string cmd, httpbuf body)
     return 0;
 }
 
+/* Given a POST request, takes out the `command=*` query string.
+ * Content-Length **must** be set.
+ * Puts result in command in its pure percent-encoded form.
+ * Returns -1 if error, 0 otherwise.
+ */
+int
+get_command(httpbuf request, string command)
+{
+    size_t contentlen = -1;
+
+    // Getline -> [store content length] -> wait for empty line ->
+    // if contentlen < 0 return -1
+    // else take out command, return 0
+    string line;
+
+    return -1;
+}
+
+
+int
+build_post_body(string command, httpbuf body)
+{
+    return 0;
+}
+
 
 void
 process_request(httpbuf request, httpbuf response)
