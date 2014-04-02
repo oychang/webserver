@@ -151,29 +151,31 @@ main(void)
         return EXIT_FAILURE;
     }
 
-    // Accept connection to server
-    int clientfd;
-    struct sockaddr_storage client;
-    socklen_t addrlen = sizeof(struct sockaddr_storage);
-    if ((clientfd = accept(serverfd, (struct sockaddr *)&client,
-            &addrlen)) == -1) {
-        perror("accept");
-        return EXIT_FAILURE;
+    while (true) {
+        // Accept connection to server
+        int clientfd;
+        struct sockaddr_storage client;
+        socklen_t addrlen = sizeof(struct sockaddr_storage);
+        if ((clientfd = accept(serverfd, (struct sockaddr *)&client,
+                &addrlen)) == -1) {
+            perror("accept");
+            return EXIT_FAILURE;
+        }
+
+        // Get request into buffer
+        httpbuf request, response;
+        if ((recv(clientfd, request, MAXBUF, 0)) == -1) {
+            perror("recv");
+            return EXIT_FAILURE;
+        }
+
+        // http://www.jmarshall.com/easy/http/
+        // process(request, response);
+
+        size_t len = strlen(response);
+        send(clientfd, response, len, 0);
+        close(clientfd);
     }
-
-    // Get request into buffer
-    httpbuf request, response;
-    if ((recv(clientfd, request, MAXBUF, 0)) == -1) {
-        perror("recv");
-        return EXIT_FAILURE;
-    }
-
-    // http://www.jmarshall.com/easy/http/
-    // process(request, response);
-
-    size_t len = strlen(response);
-    send(clientfd, response, len, 0);
-    close(clientfd);
 
     close(serverfd);
     return EXIT_SUCCESS;
