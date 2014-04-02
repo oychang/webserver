@@ -18,7 +18,8 @@ typedef char httpbuf[MAXBUF];
 typedef char string[MAXBUF];
 
 enum status {
-    OK           = 200,
-    NOT_FOUND    = 404,
-    SERVER_ERROR = 500
+    OK              = 200,
+    NOT_FOUND       = 404,
+    SERVER_ERROR    = 500,
+    NOT_IMPLEMENTED = 501
 };

@@ -122,17 +122,22 @@ void
 process_request(httpbuf request, httpbuf response)
 {
     char * s = strtok(request, " ");
+    httpbuf body = "";
+
     if (strncasecmp(s, "GET", 3) == 0) {
         s = strtok(NULL, " ");
         // Default to index.html when navigating to root
         s = (strncmp(s, "/", MAXBUF) == 0) ? "index.html" : (s+1);
 
-        httpbuf body = "";
         if (build_get_body(s, body) == -1)
             prepare_buf(NOT_FOUND, response, body);
         else
             prepare_buf(OK, response, body);
     } else if (strncasecmp(s, "POST", 4) == 0) {
+        // TODO: to see anatomy of rq
+        printf("%s\n", request);
+    } else {
+        prepare_buf(NOT_IMPLEMENTED, response, body);
     }
 
     return;
