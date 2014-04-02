@@ -14,7 +14,7 @@
 #define BACKLOG 5
 
 #define MAXBUF 4096 // 4K
-typedef char buf[MAXBUF];
+typedef char httpbuf[MAXBUF];
 typedef char string[MAXBUF];
 
 // enum verb {GET, POST};

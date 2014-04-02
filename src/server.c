@@ -43,9 +43,8 @@ getaddrinfo_wrapper(struct addrinfo *p)
 }
 
 
-
-
 // XXX: unsafe strcat
+/*
 void
 prepare_buf(buf body, enum status s)
 {
@@ -87,7 +86,7 @@ prepare_buf(buf body, enum status s)
 
     return;
 }
-
+*/
 
 // GET / HTTP/1.1
 // Host: localhost:3421
@@ -96,6 +95,7 @@ prepare_buf(buf body, enum status s)
 // User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/33.0.1750.152 Chrome/33.0.1750.152 Safari/537.36
 // Accept-Encoding: gzip,deflate,sdch
 // Accept-Language: en-US,en;q=0.8
+/*
 void
 process(buf b, buf send)
 {
@@ -127,6 +127,7 @@ process(buf b, buf send)
         fclose(f);
 
         prepare_buf(send, OK);
+        printf("%s\n", send);
         return;
     } else if (strncasecmp(s, "POST", 4) == 0) {
         printf("%s\n", b);
@@ -135,47 +136,45 @@ process(buf b, buf send)
     prepare_buf(send, SERVER_ERROR);
     return;
 }
-
-
-int
-send_reponse(buf sendbuf, int sockfd)
-{
-    size_t len = strlen(sendbuf);
-    ssize_t sentbytes = send(sockfd, sendbuf, len, 0);
-    printf("tried to send %zu...send %zd\n", len, sentbytes);
-    return 0;
-}
-
+*/
 
 int
 main(void)
 {
+    // Setup networking junk
     static struct addrinfo server;
-    int sockfd = getaddrinfo_wrapper(&server);
-    if (sockfd == EXIT_FAILURE)
+    int serverfd = getaddrinfo_wrapper(&server);
+    if (serverfd == -1)
         return EXIT_FAILURE;
-    if (listen(sockfd, BACKLOG) == -1) {
+    if (listen(serverfd, BACKLOG) == -1) {
         perror("listen");
         return EXIT_FAILURE;
     }
 
+    // Accept connection to server
     int clientfd;
     struct sockaddr_storage client;
     socklen_t addrlen = sizeof(struct sockaddr_storage);
-    if ((clientfd = accept(sockfd, (struct sockaddr *)&client, &addrlen)) == -1) {
+    if ((clientfd = accept(serverfd, (struct sockaddr *)&client,
+            &addrlen)) == -1) {
         perror("accept");
         return EXIT_FAILURE;
     }
 
-    // http://www.jmarshall.com/easy/http/
-    buf request, response;
+    // Get request into buffer
+    httpbuf request, response;
     if ((recv(clientfd, request, MAXBUF, 0)) == -1) {
         perror("recv");
         return EXIT_FAILURE;
     }
 
-    process(request, response);
-    send_reponse(response, clientfd);
+    // http://www.jmarshall.com/easy/http/
+    // process(request, response);
 
+    size_t len = strlen(response);
+    send(clientfd, response, len, 0);
+    close(clientfd);
+
+    close(serverfd);
     return EXIT_SUCCESS;
 }
