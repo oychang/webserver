@@ -17,7 +17,6 @@
 typedef char httpbuf[MAXBUF];
 typedef char string[MAXBUF];
 
-// enum verb {GET, POST};
 enum status {
     OK           = 200,
     NOT_FOUND    = 404,

@@ -169,9 +169,10 @@ main(void)
             return EXIT_FAILURE;
         }
 
-        // http://www.jmarshall.com/easy/http/
+        // Parse, build reponse, set headers
         process_request(request, response);
 
+        // Send back to originating client
         size_t len = strlen(response);
         send(clientfd, response, len, 0);
         close(clientfd);
