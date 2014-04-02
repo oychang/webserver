@@ -80,7 +80,7 @@ prepare_buf(enum status rcode, httpbuf response, httpbuf body)
     snprintf(response, MAXBUF,
         "%s\r\n"
         "Date: %s\r\n"
-        "Content-Type: text/plain\r\n"
+        "Content-Type: text/html\r\n"
         "Content-Length: %zu\r\n"
         "\r\n"
         "%s",
@@ -126,6 +126,8 @@ process_request(httpbuf request, httpbuf response)
 
     if (strncasecmp(s, "GET", 3) == 0) {
         s = strtok(NULL, " ");
+        if (s == NULL)
+            return prepare_buf(NOT_FOUND, response, body);
         // Default to index.html when navigating to root
         s = (strncmp(s, "/", MAXBUF) == 0) ? "index.html" : (s+1);
 
