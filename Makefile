@@ -8,6 +8,6 @@ server: server.o
 server.o: server.c server.h
 
 
-.PHONY: clean 
+.PHONY: clean
 clean:
 	rm -f *.o
