@@ -17,7 +17,11 @@ getaddrinfo_wrapper(struct addrinfo *p)
     hints.ai_flags = AI_PASSIVE;
     hints.ai_socktype = SOCK_STREAM;
 
-    getaddrinfo(NULL, PORT, &hints, &results);
+    int ai_error = getaddrinfo(NULL, PORT, &hints, &results);
+    if (ai_error != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(ai_error));
+        return -1;
+    }
 
     // getaddrinfo() returns a linked list of results
     int sockfd;
