@@ -121,11 +121,10 @@ build_get_body(char *fn, httpbuf body)
 void
 process_request(httpbuf request, httpbuf response)
 {
-    char * s = strtok(request, " ");
     httpbuf body = "";
 
-    if (strncasecmp(s, "GET", 3) == 0) {
-        s = strtok(NULL, " ");
+    if (strncasecmp(request, "GET", 3) == 0) {
+        char *s = strtok(&request[4], " ");
         if (s == NULL)
             return prepare_buf(NOT_FOUND, response, body);
         // Default to index.html when navigating to root
@@ -135,7 +134,7 @@ process_request(httpbuf request, httpbuf response)
             prepare_buf(NOT_FOUND, response, body);
         else
             prepare_buf(OK, response, body);
-    } else if (strncasecmp(s, "POST", 4) == 0) {
+    } else if (strncasecmp(request, "POST", 4) == 0) {
         // TODO: to see anatomy of rq
         printf("%s\n", request);
     } else {
