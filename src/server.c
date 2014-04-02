@@ -1,23 +1,25 @@
 #include "server.h"
 
+/* Get a valid socket to listen use with PORT.
+ * Returns -1 if failed to get a socket, otherwise a valid
+ * bound socket file descriptor.
+ *
+ * References:
+ * http://www.beej.us/guide/bgnet/output/html/multipage/getaddrinfoman.html
+ * http://www.beej.us/guide/bgnet/output/html/multipage/acceptman.html
+ */
 int
-getaddrinfo_wrapper(struct addrinfo * p)
+getaddrinfo_wrapper(struct addrinfo *p)
 {
-    // http://www.beej.us/guide/bgnet/output/html/multipage/getaddrinfoman.html
-    // http://www.beej.us/guide/bgnet/output/html/multipage/acceptman.html
-    static const struct addrinfo hints = {
-        .ai_flags = AI_PASSIVE,
-        .ai_family = AF_UNSPEC,
-        .ai_socktype = SOCK_STREAM,
-        .ai_protocol = 0, .ai_addrlen = 0,
-        .ai_addr = NULL, .ai_canonname = NULL, .ai_next = NULL
-    };
+    struct addrinfo hints, *results;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_flags = AI_PASSIVE;
+    hints.ai_socktype = SOCK_STREAM;
 
-    struct addrinfo * results;
     getaddrinfo(NULL, PORT, &hints, &results);
 
     // getaddrinfo() returns a linked list of results
-    // pick the first one that works and then free the list
     int sockfd;
     for (p = results; p != NULL; p = p->ai_next) {
         if ((sockfd = socket(p->ai_family, p->ai_socktype,
@@ -29,13 +31,10 @@ getaddrinfo_wrapper(struct addrinfo * p)
         } else
             break;
     }
-    if (p == NULL) {
-        // looped off the end of the list with no successful bind
-        fprintf(stderr, "failed to bind socket\n");
-        return EXIT_FAILURE;
-    }
-
     freeaddrinfo(results);
+
+    if (p == NULL)
+        return -1;
     return sockfd;
 }
 
