@@ -8,6 +8,8 @@ server: server.o
 server.o: server.c server.h
 
 
-.PHONY: clean
+.PHONY: clean clean-submit
 clean:
 	rm -f *.o
+clean-submit: clean
+	rm -rf .git .gitignore server docs
