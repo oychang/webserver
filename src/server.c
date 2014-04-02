@@ -63,7 +63,7 @@ getcurrdate(string s)
  * build out a minimal HTTP 1.1 message with headers into response.
  */
 void
-prepare_buf(enum status rcode, httpbuf response, httpbuf body)
+prepare_buf(enum status rcode, httpbuf response, httpbuf body, string mimet)
 {
     // Get return string
     char *rstring;
@@ -83,15 +83,18 @@ prepare_buf(enum status rcode, httpbuf response, httpbuf body)
     string date;
     getcurrdate(date);
 
+    if (mimet == NULL)
+        mimet = "text/plain";
+
     // Build out headers using adjacent string concatenation
     snprintf(response, MAXBUF,
         "%s\r\n"
         "Date: %s\r\n"
-        "Content-Type: text/html\r\n" // TODO: detect this
+        "Content-Type: %s\r\n"
         "Content-Length: %zu\r\n"
         "\r\n"
         "%s",
-    rstring, date, strlen(body), body);
+    rstring, date, mimet, strlen(body), body);
 
     return;
 }
@@ -216,7 +219,7 @@ get_command(httpbuf request, string command)
 
 
 int
-get_mimetype(string dest, string fn)
+get_mimetype(string dest, char *fn)
 {
     string cmd = "file --mime-type -b ";
     // xxx: assume a safe operation
@@ -263,26 +266,29 @@ process_request(httpbuf request, httpbuf response)
         // xxx: modifies request
         char *s = strtok(&request[4], " ");
         if (s == NULL)
-            return prepare_buf(NOT_FOUND, response, body);
+            return prepare_buf(NOT_FOUND, response, body, NULL);
         // Default to index.html when navigating to root
         // xxx: poor support for all http paths types, e.g. `./tmp/file` will
         // attempt to access fs root
         s = (strncmp(s, "/", MAXBUF) == 0) ? "index.html" : (s+1);
 
+        string mimet = "";
+        get_mimetype(mimet, s);
+
         if (build_get_body(s, body) == -1)
-            prepare_buf(NOT_FOUND, response, body);
+            prepare_buf(NOT_FOUND, response, body, NULL);
         else
-            prepare_buf(OK, response, body);
+            prepare_buf(OK, response, body, mimet);
     } else if (strncasecmp(request, "POST", 4) == 0) {
         string command;
         if (get_command(request, command) == -1)
-            prepare_buf(SERVER_ERROR, response, body);
+            prepare_buf(SERVER_ERROR, response, body, NULL);
         else if (build_post_body(command, body) == -1)
-            prepare_buf(SERVER_ERROR, response, body);
+            prepare_buf(SERVER_ERROR, response, body, NULL);
         else
-            prepare_buf(OK, response, body);
+            prepare_buf(OK, response, body, NULL);
     } else
-        prepare_buf(NOT_IMPLEMENTED, response, body);
+        prepare_buf(NOT_IMPLEMENTED, response, body, NULL);
 
     return;
 }
