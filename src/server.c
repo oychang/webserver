@@ -80,7 +80,7 @@ prepare_buf(enum status rcode, httpbuf response, httpbuf body)
     snprintf(response, MAXBUF,
         "%s\r\n"
         "Date: %s\r\n"
-        "Content-Type: text/html\r\n"
+        "Content-Type: text/html\r\n" // TODO: detect this
         "Content-Length: %zu\r\n"
         "\r\n"
         "%s",
@@ -188,11 +188,15 @@ process_request(httpbuf request, httpbuf response)
         else
             prepare_buf(OK, response, body);
     } else if (strncasecmp(request, "POST", 4) == 0) {
-        // TODO: to see anatomy of rq
-        printf("%s\n", request);
-    } else {
+        string command;
+        if (get_command(request, command) == -1) {
+            prepare_buf(SERVER_ERROR, response, body);
+        } else if (build_post_body(command, body) == -1)
+            prepare_buf(SERVER_ERROR, response, body);
+        else
+            prepare_buf(OK, response, body);
+    } else
         prepare_buf(NOT_IMPLEMENTED, response, body);
-    }
 
     return;
 }
@@ -229,7 +233,7 @@ main(void)
             return EXIT_FAILURE;
         }
 
-        // Parse, build reponse, set headers
+        // Parse, build response, set headers
         process_request(request, response);
 
         // Send back to originating client
