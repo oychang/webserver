@@ -54,7 +54,7 @@ getcurrdate(string s)
 }
 
 void
-prepare_buf(enum status rcode, size_t len)
+prepare_buf(enum status rcode, httpbuf response, httpbuf body)
 {
     // Get return string
     char *rstring;
@@ -75,67 +75,68 @@ prepare_buf(enum status rcode, size_t len)
     getcurrdate(date);
 
     // Build out headers using adjacent string concatenation
-    httpbuf buf;
-    snprintf(buf, MAXBUF,
+    snprintf(response, MAXBUF,
         "%s\r\n"
         "Date: %s\r\n"
         "Content-Type: text/plain\r\n"
         "Content-Length: %zu\r\n"
-        "\r\n",
-    rstring, date, len);
+        "\r\n"
+        "%s",
+    rstring, date, strlen(body), body);
 
     return;
 }
 
-// GET / HTTP/1.1
-// Host: localhost:3421
-// Connection: keep-alive
-// Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
-// User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/33.0.1750.152 Chrome/33.0.1750.152 Safari/537.36
-// Accept-Encoding: gzip,deflate,sdch
-// Accept-Language: en-US,en;q=0.8
+
 /*
-void
-process(buf b, buf send)
+ * Returns -1 if file not found (404), 0 otherwise
+ */
+int
+build_get_body(char *fn, httpbuf body)
 {
-    char * s = strtok(b, " ");
-    if (strncasecmp(s, "GET", 3) == 0) {
-        s = strtok(NULL, " ");
-        // default to index.html
-        s = (strncmp(s, "/", MAXBUF) == 0) ? "index.html" : (s+1);
-        FILE * f = fopen(s, "r");
-        if (f == NULL) {
-            perror("fopen");
-            prepare_buf(send, NOT_FOUND);
-            return;
-        }
-
-        string line;
-        while (fgets(line, MAXBUF-1, f) != NULL) {
-            size_t len = strlen(line);
-            // Replace the last character and the next
-            // spot in the buffer by CRLF.
-            // Guaranteed to be accessible because
-            // of fgets.
-            line[len-1] = '\r';
-            line[len] = '\n';
-            line[len+1] = '\0';
-            strcat(send, line);
-        }
-
-        fclose(f);
-
-        prepare_buf(send, OK);
-        printf("%s\n", send);
-        return;
-    } else if (strncasecmp(s, "POST", 4) == 0) {
-        printf("%s\n", b);
+    FILE * f = fopen(fn, "r");
+    if (f == NULL) {
+        perror("fopen");
+        return -1;
     }
 
-    prepare_buf(send, SERVER_ERROR);
+    string line;
+    // Get one line at a time to ensure CRLF line endings.
+    // Replace the last character and the next spot in the buffer by CRLF.
+    while (fgets(line, MAXBUF-1, f) != NULL) {
+        size_t len = strlen(line);
+        line[len-1] = '\r';
+        line[len] = '\n';
+        line[len+1] = '\0';
+        strcat(body, line);
+    }
+    fclose(f);
+
+    return 0;
+}
+
+
+// GET / HTTP/1.1
+void
+process_request(httpbuf request, httpbuf response)
+{
+    char * s = strtok(request, " ");
+    if (strncasecmp(s, "GET", 3) == 0) {
+        s = strtok(NULL, " ");
+        // Default to index.html when navigating to root
+        s = (strncmp(s, "/", MAXBUF) == 0) ? "index.html" : (s+1);
+
+        httpbuf body = "";
+        if (build_get_body(s, body) == -1)
+            prepare_buf(NOT_FOUND, response, body);
+        else
+            prepare_buf(OK, response, body);
+    } else if (strncasecmp(s, "POST", 4) == 0) {
+    }
+
     return;
 }
-*/
+
 
 int
 main(void)
@@ -169,7 +170,7 @@ main(void)
         }
 
         // http://www.jmarshall.com/easy/http/
-        // process(request, response);
+        process_request(request, response);
 
         size_t len = strlen(response);
         send(clientfd, response, len, 0);
