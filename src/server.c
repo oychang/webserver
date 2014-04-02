@@ -226,8 +226,10 @@ get_mimetype(string dest, char *fn)
     strcat(cmd, fn);
 
     httpbuf mimestring;
-    if (run_command(cmd, mimestring) == -1)
+    if (run_command(cmd, mimestring) == -1) {
+        memcpy(dest, "text/plain", MAXBUF);
         return -1;
+    }
 
     // Get rid of two line-delimiters
     mimestring[strlen(mimestring)-2] = '\0';
