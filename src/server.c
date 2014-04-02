@@ -152,7 +152,6 @@ translate_percent_encoding(string s)
         }
     }
 
-    printf("%s\n", s);
     return;
 }
 
@@ -182,28 +181,46 @@ run_command(string cmd, httpbuf body)
 
 /* Given a POST request, takes out the `command=*` query string.
  * Content-Length **must** be set.
- * Puts result in command in its pure percent-encoded form.
- * Returns -1 if error, 0 otherwise.
+ *
+ * Returns -1 if error, 0 otherwise in which case the command value will be put
+ * into the command parameter, un-percent encoded.
  */
 int
 get_command(httpbuf request, string command)
 {
-    size_t contentlen = -1;
+    ssize_t contentlen = -1;
     // TODO
     // Getline -> [store content length] -> wait for empty line ->
     // if contentlen < 0 return -1
     // else take out command, return 0
-    string line;
+    char *line = strtok(request, "\n");
+    // We can safely ignore the first line since it is the HTTP status line
+    while ((line = strtok(NULL, "\n")) != NULL) {
+        if (strstr(line, "Content-Length") != NULL) {
+            contentlen = atoi(&line[strlen("Content-Length")]);
+        } else if (line[0] == '\r' || line[0] == '\0') {
+            line = strtok(NULL, "\n");
+
+            if (contentlen != -1) {
+                char *cmd = strtok(line, "command=");
+                memcpy(command, cmd, MAXBUF);
+                translate_percent_encoding(command);
+                return 0;
+            }
+
+            return -1;
+        }
+    }
 
     return -1;
 }
 
-/* TODO
+/* Alias for run_command().
  */
 int
 build_post_body(string command, httpbuf body)
 {
-    return 0;
+    return run_command(command, body);
 }
 
 /* Looks at first line and goes to either GET/POST which behave
@@ -212,11 +229,12 @@ build_post_body(string command, httpbuf body)
  * NB: it is assumed that response is empty starting out...it is not even
  * modified in this function directly, but instead passed to other functions
  * to modify
+ * NB: neither is body directly modified in this function
  */
 void
 process_request(httpbuf request, httpbuf response)
 {
-    httpbuf body;
+    httpbuf body = "";
 
     // xxx: assume HTTP/1.1 request
     if (strncasecmp(request, "GET", 3) == 0) {
