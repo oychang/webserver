@@ -118,6 +118,38 @@ build_get_body(char *fn, httpbuf body)
 }
 
 
+/*
+ * Translate:
+ * '+               -> ' '
+ * '%n' (ascii hex) -> 'n ' (ascii representation)
+ */
+void
+translate_percent_encoding(string s)
+{
+    // long int strtol(const char *nptr, char **endptr, int base);
+    int i;
+    for (i = 0; i < MAXBUF; i++) {
+        char c = s[i];
+        if (c == '+')
+            s[i] = ' ';
+        else if (c == '\0')
+            break;
+        else if (c == '%') {
+            char *nptr = &s[i+1];
+            char *endptr = &s[i+2];
+            char c = strtol(nptr, &endptr, 16);
+            s[i] = c;
+            s[i+1] = ' ';
+            s[i+2] = ' ';
+            i += 2;
+        }
+    }
+
+    printf("%s\n", s);
+    return;
+}
+
+
 void
 process_request(httpbuf request, httpbuf response)
 {
