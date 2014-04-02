@@ -42,51 +42,50 @@ getaddrinfo_wrapper(struct addrinfo *p)
     return sockfd;
 }
 
-
-// XXX: unsafe strcat
-/*
 void
-prepare_buf(buf body, enum status s)
+getcurrdate(string s)
 {
-    buf b = {};
-    // HTTP/1.1 200 OK
-    switch (s) {
-    case OK:
-        strcat(b, "HTTP/1.1 200 OK\r\n");
-        break;
-    case NOT_FOUND:
-        strcat(b, "HTTP/1.1 404 Not Found\r\n");
-        break;
-    case SERVER_ERROR:
-        strcat(b, "HTTP/1.1 500 Server Error\r\n");
-        break;
-    }
-
-    // according to rfc, we can return asctime(), but not good
-    // Date: Fri, 31 Dec 1999 23:59:59 GMT
+    // Sun, 06 Nov 1994 08:49:37 GMT
     time_t rawtime;
     struct tm * timeinfo;
     time(&rawtime);
     timeinfo = gmtime(&rawtime);
-    sprintf(b, "%s\r\n", asctime(timeinfo));
+    strftime(s, MAXBUF, "%a, %d %h %Y %H:%M:%S GMT", timeinfo);
+}
 
-    // xxx: only mime type available
-    // Content-Type: text/plain
-    strcat(b, "Content-Type: text/plain\r\n");
+void
+prepare_buf(enum status rcode, size_t len)
+{
+    // Get return string
+    char *rstring;
+    switch (rcode) {
+    case OK:
+        rstring = "HTTP/1.1 200 OK";
+        break;
+    case NOT_FOUND:
+        rstring = "HTTP/1.1 404 Not Found";
+        break;
+    case SERVER_ERROR: default:
+        rstring = "HTTP/1.1 500 Server Error";
+        break;
+    }
 
-    // Content-Length: 42
-    sprintf(b, "Content-Length: %zu\r\n", strlen(body));
+    // Get current date string
+    string date;
+    getcurrdate(date);
 
-    // Newline
-    strcat(b, "\r\n");
-
-    // Body
-    if (strlen(body) > 0)
-        strcat(b, body);
+    // Build out headers using adjacent string concatenation
+    httpbuf buf;
+    snprintf(buf, MAXBUF,
+        "%s\r\n"
+        "Date: %s\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: %zu\r\n"
+        "\r\n",
+    rstring, date, len);
 
     return;
 }
-*/
 
 // GET / HTTP/1.1
 // Host: localhost:3421
