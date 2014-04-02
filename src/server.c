@@ -174,7 +174,7 @@ run_command(string cmd, httpbuf body)
 void
 process_request(httpbuf request, httpbuf response)
 {
-    httpbuf body = "";
+    httpbuf body;
 
     if (strncasecmp(request, "GET", 3) == 0) {
         char *s = strtok(&request[4], " ");
@@ -189,9 +189,9 @@ process_request(httpbuf request, httpbuf response)
             prepare_buf(OK, response, body);
     } else if (strncasecmp(request, "POST", 4) == 0) {
         string command;
-        if (get_command(request, command) == -1) {
+        if (get_command(request, command) == -1)
             prepare_buf(SERVER_ERROR, response, body);
-        } else if (build_post_body(command, body) == -1)
+        else if (build_post_body(command, body) == -1)
             prepare_buf(SERVER_ERROR, response, body);
         else
             prepare_buf(OK, response, body);
