@@ -42,6 +42,7 @@ getaddrinfo_wrapper(struct addrinfo *p)
     return sockfd;
 }
 
+
 void
 getcurrdate(string s)
 {
@@ -52,6 +53,7 @@ getcurrdate(string s)
     timeinfo = gmtime(&rawtime);
     strftime(s, MAXBUF, "%a, %d %h %Y %H:%M:%S GMT", timeinfo);
 }
+
 
 void
 prepare_buf(enum status rcode, httpbuf response, httpbuf body)
@@ -116,7 +118,6 @@ build_get_body(char *fn, httpbuf body)
 }
 
 
-// GET / HTTP/1.1
 void
 process_request(httpbuf request, httpbuf response)
 {
