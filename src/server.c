@@ -150,6 +150,27 @@ translate_percent_encoding(string s)
 }
 
 
+int
+run_command(string cmd, httpbuf body)
+{
+    FILE *fp = popen(cmd, "r");
+    if (fp == NULL)
+        return -1;
+
+    string path;
+    while (fgets(path, MAXBUF-1, fp) != NULL) {
+        size_t len = strlen(path);
+        path[len-1] = '\r';
+        path[len] = '\n';
+        path[len+1] = '\0';
+        strcat(body, path);
+    }
+
+    pclose(fp);
+    return 0;
+}
+
+
 void
 process_request(httpbuf request, httpbuf response)
 {
