@@ -42,19 +42,26 @@ getaddrinfo_wrapper(struct addrinfo *p)
     return sockfd;
 }
 
-
+/* Get current GMT datetime in HTTP format.
+ * Puts result into `s`.
+ */
 void
 getcurrdate(string s)
 {
-    // Sun, 06 Nov 1994 08:49:37 GMT
     time_t rawtime;
     struct tm * timeinfo;
     time(&rawtime);
+    // xxx: return value not checked
     timeinfo = gmtime(&rawtime);
+    // Assume s is blank and there is enough space.
+    // Datetime should always occupy 30 characters (with '\0')
+    // format is Sun, 06 Nov 1994 08:49:37 GMT
     strftime(s, MAXBUF, "%a, %d %h %Y %H:%M:%S GMT", timeinfo);
 }
 
-
+/* Given an empty response and a body of stuff to put in it, we
+ * build out a minimal HTTP 1.1 message with headers into response.
+ */
 void
 prepare_buf(enum status rcode, httpbuf response, httpbuf body)
 {
@@ -105,6 +112,7 @@ build_get_body(char *fn, httpbuf body)
     string line;
     // Get one line at a time to ensure CRLF line endings.
     // Replace the last character and the next spot in the buffer by CRLF.
+    // todo: warn: this assumes a text file
     while (fgets(line, MAXBUF-1, f) != NULL) {
         size_t len = strlen(line);
         line[len-1] = '\r';
@@ -118,15 +126,14 @@ build_get_body(char *fn, httpbuf body)
 }
 
 
-/*
- * Translate:
+/* Translates a basic percent-encoded string into its normal ASCII by the
+ * following mapping.
  * '+               -> ' '
  * '%n' (ascii hex) -> 'n ' (ascii representation)
  */
 void
 translate_percent_encoding(string s)
 {
-    // long int strtol(const char *nptr, char **endptr, int base);
     int i;
     for (i = 0; i < MAXBUF; i++) {
         char c = s[i];
@@ -149,7 +156,9 @@ translate_percent_encoding(string s)
     return;
 }
 
-
+/* Runs a (assumed to be) safe command and puts CRLF-delimited stuff into
+ * the (assumed to be empty) body.
+ */
 int
 run_command(string cmd, httpbuf body)
 {
@@ -163,12 +172,13 @@ run_command(string cmd, httpbuf body)
         path[len-1] = '\r';
         path[len] = '\n';
         path[len+1] = '\0';
-        strcat(body, path);
+        strncat(body, path, MAXBUF-len-1);
     }
 
     pclose(fp);
     return 0;
 }
+
 
 /* Given a POST request, takes out the `command=*` query string.
  * Content-Length **must** be set.
@@ -179,7 +189,7 @@ int
 get_command(httpbuf request, string command)
 {
     size_t contentlen = -1;
-
+    // TODO
     // Getline -> [store content length] -> wait for empty line ->
     // if contentlen < 0 return -1
     // else take out command, return 0
@@ -188,24 +198,29 @@ get_command(httpbuf request, string command)
     return -1;
 }
 
-
+/* TODO
+ */
 int
 build_post_body(string command, httpbuf body)
 {
     return 0;
 }
 
-
+/* TODO: document
+ */
 void
 process_request(httpbuf request, httpbuf response)
 {
     httpbuf body;
 
     if (strncasecmp(request, "GET", 3) == 0) {
+        // todo: could probably use something simpler than strtok
         char *s = strtok(&request[4], " ");
         if (s == NULL)
             return prepare_buf(NOT_FOUND, response, body);
         // Default to index.html when navigating to root
+        // xxx: poor support for all http paths types, e.g. `./tmp/file` will
+        // attempt to access fs root
         s = (strncmp(s, "/", MAXBUF) == 0) ? "index.html" : (s+1);
 
         if (build_get_body(s, body) == -1)
