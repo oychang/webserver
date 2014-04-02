@@ -174,7 +174,8 @@ run_command(string cmd, httpbuf body)
         strncat(body, path, MAXBUF-len-1);
     }
 
-    pclose(fp);
+    if (pclose(fp) != 0)
+        return -1;
     return 0;
 }
 
@@ -189,16 +190,14 @@ int
 get_command(httpbuf request, string command)
 {
     ssize_t contentlen = -1;
-    // TODO
-    // Getline -> [store content length] -> wait for empty line ->
-    // if contentlen < 0 return -1
-    // else take out command, return 0
     char *line = strtok(request, "\n");
     // We can safely ignore the first line since it is the HTTP status line
     while ((line = strtok(NULL, "\n")) != NULL) {
         if (strstr(line, "Content-Length") != NULL) {
             contentlen = atoi(&line[strlen("Content-Length")]);
         } else if (line[0] == '\r' || line[0] == '\0') {
+            // todo: strange insistence on having content-length
+            // and then not even using it for security, heh
             line = strtok(NULL, "\n");
 
             if (contentlen != -1) {
@@ -214,6 +213,28 @@ get_command(httpbuf request, string command)
 
     return -1;
 }
+
+
+int
+get_mimetype(string dest, string fn)
+{
+    string cmd = "file --mime-type -b ";
+    // xxx: assume a safe operation
+    strcat(cmd, fn);
+
+    httpbuf mimestring;
+    if (run_command(cmd, mimestring) == -1)
+        return -1;
+
+    // Get rid of two line-delimiters
+    mimestring[strlen(mimestring)-2] = '\0';
+    // Copy over into string
+    strncpy(dest, mimestring, MAXBUF);
+    dest[MAXBUF-1] = '\0';
+
+    return 0;
+}
+
 
 /* Alias for run_command().
  */
