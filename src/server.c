@@ -39,6 +39,10 @@ getaddrinfo_wrapper(struct addrinfo *p)
 
     if (p == NULL)
         return -1;
+
+    static const int yes = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
+        perror("setsockopt");
     return sockfd;
 }
 
