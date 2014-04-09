@@ -229,7 +229,7 @@ get_mimetype(string dest, char *fn)
     // xxx: assume a safe operation
     strcat(cmd, fn);
 
-    httpbuf mimestring;
+    httpbuf mimestring = "";
     if (run_command(cmd, mimestring) == -1) {
         memcpy(dest, "text/plain", MAXBUF);
         return -1;
