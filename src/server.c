@@ -70,6 +70,8 @@ void
 prepare_buf(enum status rcode, httpbuf response, httpbuf body, string mimet)
 {
     // Get return string
+    // NB: these correspond to codes in the header file
+    // there should be a case for each one
     char *rstring;
     switch (rcode) {
     case OK:
@@ -77,6 +79,9 @@ prepare_buf(enum status rcode, httpbuf response, httpbuf body, string mimet)
         break;
     case NOT_FOUND:
         rstring = "HTTP/1.1 404 Not Found";
+        break;
+    case NOT_IMPLEMENTED:
+        rstring = "HTTP/1.1 501 Not Implemented";
         break;
     case SERVER_ERROR: default:
         rstring = "HTTP/1.1 500 Server Error";
